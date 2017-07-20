@@ -41,6 +41,13 @@ class DiskCapacity < Sensu::Plugin::Metric::CLI::Graphite
          long: '--scheme SCHEME',
          default: Socket.gethostname.to_s
 
+  option :total,
+         description: 'Include grand total (df --total option)',
+         short: '-t',
+         long: '--total',
+         boolean: true,
+         default: false
+
   # Unused ?
   #
   def convert_integers(values)
@@ -58,12 +65,12 @@ class DiskCapacity < Sensu::Plugin::Metric::CLI::Graphite
   #
   def run
     # Get capacity metrics from DF as they don't appear in /proc
-    `df -PT`.split("\n").drop(1).each do |line|
+    `df -PT #{config[:total] ? '--total' : ''}`.split("\n").drop(1).each do |line|
       begin
         fs, _type, blocks, used, avail, capacity, _mnt = line.split
 
         timestamp = Time.now.to_i
-        if fs =~ /\/dev/
+        if fs =~ /\/dev/ || (config[:total] && fs == 'total')
           fs = fs.gsub('/dev/', '')
           metrics = {
             disk: {
@@ -85,12 +92,12 @@ class DiskCapacity < Sensu::Plugin::Metric::CLI::Graphite
     end
 
     # Get inode capacity metrics
-    `df -Pi`.split("\n").drop(1).each do |line|
+    `df -Pi #{config[:total] ? '--total' : ''}`.split("\n").drop(1).each do |line|
       begin
         fs, _inodes, used, avail, capacity, _mnt = line.split
 
         timestamp = Time.now.to_i
-        if fs =~ /\/dev/
+        if fs =~ /\/dev/ || (config[:total] && fs == 'total')
           fs = fs.gsub('/dev/', '')
           metrics = {
             disk: {

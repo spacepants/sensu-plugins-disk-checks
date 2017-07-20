@@ -90,19 +90,28 @@ class DiskUsageMetrics < Sensu::Plugin::Metric::CLI::Graphite
          long: '--block-size BLOCK_SIZE',
          default: 'M'
 
+  option :total,
+         description: 'Include grand total (df --total option)',
+         short: '-t',
+         long: '--total',
+         boolean: true,
+         default: false
+
   # Main function
   #
   def run
     delim = config[:flatten] == true ? '_' : '.'
     # Get disk usage from df with used and avail in megabytes
     # #YELLOW
-    `df -PB#{config[:block_size]} #{config[:local] ? '-l' : ''}`.split("\n").drop(1).each do |line|
+    `df -PB#{config[:block_size]} #{config[:local] ? '-l' : ''} #{config[:total] ? '--total' : ''}`.split("\n").drop(1).each do |line|
       fs, blocks, used, avail, used_p, mnt = line.split
 
       unless %r{/sys[/|$]|/dev[/|$]|/run[/|$]} =~ mnt
         next if config[:ignore_mnt] && config[:ignore_mnt].find { |x| mnt.match(x) }
         next if config[:include_mnt] && !config[:include_mnt].find { |x| mnt.match(x) }
-        mnt = if config[:flatten]
+        mnt = if config[:total] && fs == 'total'
+                fs
+              elsif config[:flatten]
                 mnt.eql?('/') ? 'root' : mnt.gsub(/^\//, '')
               else
                 # If mnt is only / replace that with root if its /tmp/foo
