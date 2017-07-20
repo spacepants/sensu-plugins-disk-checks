@@ -97,7 +97,7 @@ class DiskUsageMetrics < Sensu::Plugin::Metric::CLI::Graphite
     # Get disk usage from df with used and avail in megabytes
     # #YELLOW
     `df -PB#{config[:block_size]} #{config[:local] ? '-l' : ''}`.split("\n").drop(1).each do |line|
-      _, _, used, avail, used_p, mnt = line.split
+      fs, blocks, used, avail, used_p, mnt = line.split
 
       unless %r{/sys[/|$]|/dev[/|$]|/run[/|$]} =~ mnt
         next if config[:ignore_mnt] && config[:ignore_mnt].find { |x| mnt.match(x) }
@@ -111,6 +111,7 @@ class DiskUsageMetrics < Sensu::Plugin::Metric::CLI::Graphite
               end
         # Fix subsequent slashes
         mnt = mnt.gsub '/', delim
+        output [config[:scheme], mnt, 'blocks'].join('.'), blocks.gsub(config[:block_size], '')
         output [config[:scheme], mnt, 'used'].join('.'), used.gsub(config[:block_size], '')
         output [config[:scheme], mnt, 'avail'].join('.'), avail.gsub(config[:block_size], '')
         output [config[:scheme], mnt, 'used_percentage'].join('.'), used_p.delete('%')

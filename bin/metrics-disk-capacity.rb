@@ -60,13 +60,14 @@ class DiskCapacity < Sensu::Plugin::Metric::CLI::Graphite
     # Get capacity metrics from DF as they don't appear in /proc
     `df -PT`.split("\n").drop(1).each do |line|
       begin
-        fs, _type, _blocks, used, avail, capacity, _mnt = line.split
+        fs, _type, blocks, used, avail, capacity, _mnt = line.split
 
         timestamp = Time.now.to_i
         if fs =~ /\/dev/
           fs = fs.gsub('/dev/', '')
           metrics = {
             disk: {
+              "#{fs}.blocks" => blocks,
               "#{fs}.used" => used,
               "#{fs}.avail" => avail,
               "#{fs}.capacity" => capacity.delete('%')
